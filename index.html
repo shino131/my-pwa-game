@@ -1,0 +1,316 @@
+     <!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة تذكر الأسماء</title>
+
+    <!-- Meta tags for PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="theme-color" content="#2c3e50">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Tajawal', Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #ecf0f1;
+            font-size: 3em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        #nameDisplay {
+            font-size: 4em;
+            margin: 30px 0;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2ecc71;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1); }
+            100% { transform: scale(1); }
+        }
+
+        #gameOver {
+            display: none;
+        }
+
+        #resultMessage {
+            font-size: 1.5em;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        
+        .correct {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        
+        .incorrect {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        button {
+            padding: 15px 35px;
+            font-size: 1.2em;
+            cursor: pointer;
+            margin: 10px;
+            background-color: #1abc9c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        
+        button:hover {
+            background-color: #16a085;
+            transform: scale(1.05);
+        }
+        
+        input {
+            padding: 15px;
+            font-size: 1.5em;
+            margin: 15px auto;
+            width: 80%;
+            display: block;
+            border: 3px solid #16a085;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        #levelSelection {
+            margin: 20px 0;
+            animation: fadeIn 1s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        footer {
+            font-size: 1em;
+            color: #bdc3c7;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>لعبة تذكر الأسماء</h1>
+    <div id="levelSelection">
+        <p>اختر المستوى:</p>
+        <button onclick="selectLevel(2)">المستوى 2</button>
+        <button onclick="selectLevel(4)">المستوى 4</button>
+        <button onclick="selectLevel(6)">المستوى 6</button>
+        <button onclick="selectLevel(8)">المستوى 8</button>
+        <button onclick="selectLevel(10)">المستوى 10</button>
+    </div>
+
+    <div id="nameDisplay"></div>
+    
+    <div id="inputSection" style="display: none;">
+        <p>أدخل الأسماء بالترتيب:</p>
+        <input type="text" id="nameInput" placeholder="اكتب الاسم هنا" onkeydown="handleEnter(event)">
+    </div>
+    
+    <div id="gameOver">
+        <p id="resultMessage"></p>
+        <button id="restartButton" tabindex="0" onclick="restartGame()">إعادة اللعب</button>
+        <button id="returnButton" tabindex="1" onclick="returnToLevelSelection()">العودة لاختيار المستوى</button>
+    </div>
+    
+    <div id="score">النقاط: <span id="scoreValue">0</span></div>
+    <div id="attempts">عدد المحاولات الصحيحة: <span id="correctAttempts">0</span> من <span id="totalAttempts">0</span></div>
+    <div id="lastPlay">آخر وقت وتاريخ: <span id="lastPlayTime">--:--:--</span> <span id="lastPlayDate">--/--/----</span></div>
+
+    <footer>
+        الإصدار ١ - تاريخ ٥-٩-٢٠٢٤ | التعديل ٧ - تاريخ ٨-٩-٢٠٢٤
+    </footer>
+
+<script>
+    const firstNames = [
+        "محمد", "أحمد", "محمود", "فاطمة", "عائشة", "ياسر", "حسن", "زينب", "علي", "نور",
+        "طارق", "محسن", "جابر", "شريف", "الشريف", "شادي", "عثمان", "ماهر", "الحملي", "الشناوي",
+        "الغندور", "فوزي", "عادل", "الرملي", "أباظة", "خالد", "سعيد", "جميل", "عمر", "سلمى",
+        "ريم", "أمينة", "سارة", "مريم", "حسن", "أحمد", "سعيد", "علي", "فؤاد", "خالد",
+        "جمال", "منى", "كريمة", "رحاب", "نادية", "سليمان", "عبد الله", "محمود", "مصطفى", "يوسف",
+        "حسين", "عبد الرحمن", "حبيبة", "لينا", "أحمد", "فايزة", "بشير", "علياء", "هدى", "هاني",
+        "غادة", "أيمن", "إيمان", "عادل", "سحر", "رغد", "رشيد", "صالح", "عماد", "منى",
+        "رنا", "بلال", "شكرية", "نصر", "صلاح", "أمل", "سمية", "مروان", "إيناس", "هالة",
+        "زين", "إبراهيم", "رفيقة", "حسان", "نديم", "طارق", "مروة", "أيوب", "راضي", "علياء",
+        "سعيد", "نبيل", "جمال", "رقية", "عبد اللطيف", "فوزية", "ياسر", "جمانة", "خديجة", "توفيق",
+        "أكرم", "جميلة", "فتحي", "ثريا", "مراد", "سعاد", "علاء", "لطيفة", "منصور", "مروى"
+    ];
+    
+    const lastNames = [
+        "الشناوي", "السعيد", "مكي", "عاشور", "العمدة", "الحملي", "الغندور", "الرملي", "عبد الجبار", "عبد الرحمن", "العلي",
+        "عبد الله", "المنصور", "فوزي", "المصطفى", "أباظة", "السيد", "الحسين", "المرسي",  "والي", "صالح", "مبارك", "عيد",  "حسين", "الغزالي", "الجنزوري", "الشريف", "نبيل", "فصيح", "ماهر", "توفيق", "مخيمر", "العوض", "الداوود"
+    ];
+
+    let currentLevel = 1;
+    let currentIndex = 0;
+    let score = 0;
+    let displayedNames = [];
+    let userAnswers = [];
+    let correctAttempts = 0;
+    let totalAttempts = 0;
+
+    function selectLevel(level) {
+        const allowedLevels = [2, 4, 6, 8, 10];  // المستويات المسموح بها
+        if (allowedLevels.includes(level)) {
+            currentLevel = level;
+            startGame();
+        } else {
+            alert("يرجى اختيار مستوى متاح: 2, 4, 6, 8, 10");
+        }
+    }
+
+    function startGame() {
+        currentIndex = 0;
+        displayedNames = [];
+        userAnswers = [];
+        correctAttempts = 0;
+        totalAttempts = 0;
+        document.getElementById("correctAttempts").innerText = correctAttempts;
+        document.getElementById("totalAttempts").innerText = totalAttempts;
+        document.getElementById("levelSelection").style.display = "none";
+        document.getElementById("gameOver").style.display = "none";
+        document.getElementById("inputSection").style.display = "none";
+        document.getElementById("nameDisplay").innerText = "";
+        showNextName();
+    }
+
+    function showNextName() {
+        if (displayedNames.length < currentLevel) {
+            let firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+            let lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+            let fullName = firstName + " " + lastName;
+            displayedNames.push(fullName);
+            document.getElementById("nameDisplay").innerText = fullName;
+            currentIndex++;
+            setTimeout(() => {
+                document.getElementById("nameDisplay").innerText = "";
+                if (currentIndex < currentLevel) {
+                    showNextName();
+                } else {
+                    endNameDisplay();
+                }
+            }, 2000);
+        }
+    }
+
+    function endNameDisplay() {
+        document.getElementById("nameDisplay").innerText = "";
+        document.getElementById("inputSection").style.display = "block";
+        document.getElementById("nameInput").focus();
+    }
+
+    function checkAnswer() {
+        let userInput = document.getElementById("nameInput").value.trim();
+        userAnswers.push(userInput);
+        document.getElementById("nameInput").value = "";
+
+        if (userAnswers.length === displayedNames.length) {
+            document.getElementById("inputSection").style.display = "none";
+            let correct = true;
+            let resultMessage = "";
+            let counter = 1;
+
+            for (let i = 0; i < displayedNames.length; i++) {
+                if (userAnswers[i] !== displayedNames[i]) {
+                    correct = false;
+                    resultMessage += `<span class="incorrect">${counter}. خطأ: أدخلت "${userAnswers[i]}" بدلاً من "${displayedNames[i]}"</span><br>`;
+                } else {
+                    resultMessage += `<span class="correct">${counter}. صحيح: "${userAnswers[i]}"</span><br>`;
+                }
+                counter++;
+            }
+            document.getElementById("resultMessage").innerHTML = resultMessage;
+            document.getElementById("gameOver").style.display = "block";
+
+            totalAttempts++;
+            document.getElementById("totalAttempts").innerText = totalAttempts;
+
+            if (correct) {
+                score++;
+                correctAttempts++;
+                document.getElementById("correctAttempts").innerText = correctAttempts;
+                document.getElementById("scoreValue").innerText = score;
+            }
+
+            updateLastPlayTime();
+        }
+    }
+
+    function handleEnter(event) {
+        if (event.key === "Enter") {
+            checkAnswer();
+        }
+    }
+
+    function restartGame() {
+        score = 0;
+        startGame();
+    }
+
+    function returnToLevelSelection() {
+        document.getElementById("levelSelection").style.display = "block";
+        document.getElementById("gameOver").style.display = "none";
+        document.getElementById("inputSection").style.display = "none";
+        document.getElementById("nameDisplay").innerText = "";
+    }
+
+    function updateLastPlayTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        const dateString = now.toLocaleDateString();
+        document.getElementById("lastPlayTime").innerText = timeString;
+        document.getElementById("lastPlayDate").innerText = dateString;
+    }
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(function(registration) {
+                console.log('Service Worker registered with scope:', registration.scope);
+            })
+            .catch(function(error) {
+                console.log('Service Worker registration failed:', error);
+            });
+    }
+</script>
+</body>
+</html>
